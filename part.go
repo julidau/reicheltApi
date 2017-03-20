@@ -104,7 +104,7 @@ func (c *Connection) GetPrice(p Part) float32 {
 
 	// need to convert german decimals (using ,) to american decimals
 	// using .
-	str := strings.Replace(price[:i-1], ",", ".", 1)
+	str := strings.Replace(price[:i], ",", ".", 1)
 	ret, _ := strconv.ParseFloat(str, 32)
 	return float32(ret)
 }
