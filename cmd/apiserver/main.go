@@ -182,6 +182,12 @@ func (h Handler) Meta(resp http.ResponseWriter, path []string) {
 	}
 
 cached:
+	if meta == nil {
+		// make output useful for nil maps
+		fmt.Fprint(resp, "[]")
+		return
+	}
+
 	encoder := json.NewEncoder(resp)
 
 	if len(path) > 1 {
