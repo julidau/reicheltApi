@@ -104,6 +104,7 @@ func (h Handler) Picture(resp http.ResponseWriter, path []string) {
 		InternalError(resp)
 		return
 	}
+	defer img.Close()
 
 	decodedImg, err := jpeg.Decode(img)
 	if err != nil {
@@ -260,5 +261,8 @@ func main() {
 	}
 
 	log.Println("start serving on:", *addr)
-	log.Fatal(http.ListenAndServe(*addr, Handler{conn, cache.New(cache.NoExpiration, 0)}))
+	log.Fatal(http.ListenAndServe(*addr, Handler{
+		Connection: conn,
+		cache:      cache.New(cache.NoExpiration, 0),
+	}))
 }
