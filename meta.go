@@ -15,6 +15,10 @@ var (
 	metaSelector          = cascadia.MustCompile(".av_propview")
 	metaItemNameSelector  = cascadia.MustCompile(".av_propname")
 	metaItemValueSelector = cascadia.MustCompile(".av_propvalue")
+	mpnSelector           = cascadia.MustCompile("#av_articlemanufacturer > .av_fontnormal")
+	manufacturerSelector  = cascadia.MustCompile("#av_articlemanufacturer > [itemprop=\"manufacturer\"]")
+
+	datasheetSelector = cascadia.MustCompile(".av_datasheet_description a")
 )
 
 // Get Metadata connected to specified part
@@ -63,6 +67,48 @@ func (c *Connection) GetMeta(p Part) (Meta, error) {
 		}
 
 		result[headline] = data
+	}
+
+	// insert datasheets
+	nodes = datasheetSelector.MatchAll(doc)
+	temp := make(map[string]string)
+
+	for _, node := range nodes {
+
+		if node.FirstChild == nil || node.FirstChild.Type != html.TextNode {
+			continue
+		}
+
+		name := node.FirstChild.Data
+		link := ""
+
+		// find href of link
+		for _, k := range node.Attr {
+			if k.Key == "href" {
+				link = k.Val
+			}
+		}
+
+		if link == "" {
+			// no link found
+			continue
+		}
+
+		temp[name] = link
+	}
+
+	result["datasheets"] = temp
+
+	// get MPN
+	node := mpnSelector.MatchFirst(doc)
+	if node != nil && node.FirstChild != nil {
+		temp["mpn"] = node.FirstChild.Data
+	}
+
+	// get Manufacturer
+	node = manufacturerSelector.MatchFirst(doc)
+	if node != nil && node.FirstChild != nil {
+		temp["manufacturer"] = node.FirstChild.Data
 	}
 
 	return result, nil

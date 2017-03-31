@@ -14,33 +14,42 @@ import (
 )
 
 type Part struct {
-	Number int `json:"article_artid"`
+	Number      int
+	Description string
+}
 
+// used for the json Decoder
+// The fields are then copied to Part
+// (This was done to remove the structure tags).
+type partInternal struct {
+	Number      int    `json:"article_artid"`
 	Description string `json:"article_lang_besch"`
 }
 
+// Where to dispatch api queries to
 const apiurl = "https://www.reichelt.de/index.html"
 
-type ResponseField struct {
+// One Response-field from the autocomplete
+// endpoint (a small excerpt from it)
+type responseField struct {
 	NumFound int     `json:"numFound"`
 	MaxScore float32 `json:"maxScore"`
 
-	Docs []Part `json:"docs"`
+	Docs []partInternal `json:"docs"`
 }
 
-type SearchResponse struct {
-	Response ResponseField `json:"response"`
+// The Full response
+// notice: There are more fields that the server response contains
+type searchResponse struct {
+	Response responseField `json:"response"`
 }
 
-var (
-	priceSelector = cascadia.MustCompile("#av_price")
-)
+var priceSelector = cascadia.MustCompile("#av_price")
 
 // Search for a part like using the sites search engine
 // can be used to resolv partnumbers to internal ones
-func (c *Connection) FindPart(query string) ([]Part, error) {
+func (c *Connection) FindPart(query string) (result []Part, err error) {
 	resp, err := c.client.Get(apiurl + "?ACTION=514&id=8&term=" + url.PathEscape(query))
-	c.queryCount++
 
 	if err != nil {
 		return nil, err
@@ -52,12 +61,21 @@ func (c *Connection) FindPart(query string) ([]Part, error) {
 	}
 
 	reader := json.NewDecoder(resp.Body)
-	response := SearchResponse{}
+	response := searchResponse{}
 	if err = reader.Decode(&response); err != nil {
 		return nil, err
 	}
 
-	return response.Response.Docs, nil
+	result = make([]Part, len(response.Response.Docs))
+
+	for i, j := range response.Response.Docs {
+		result[i] = Part{
+			Number:      j.Number,
+			Description: j.Description,
+		}
+	}
+
+	return result, nil
 }
 
 // Returns the Price of the Part
@@ -102,8 +120,8 @@ func (c *Connection) GetPrice(p Part) float32 {
 		return 0
 	}
 
-	// need to convert german decimals (using ,) to american decimals
-	// using .
+	// need to convert german float (using ,) to american decimals
+	// using . for ParseFloat (since ParseFloat is not localized)
 	str := strings.Replace(price[:i], ",", ".", 1)
 	ret, _ := strconv.ParseFloat(str, 32)
 	return float32(ret)

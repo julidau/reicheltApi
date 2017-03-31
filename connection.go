@@ -8,10 +8,11 @@ import (
 
 type Connection struct {
 	client http.Client
-
-	queryCount int
 }
 
+// Opens a new connection to the reichelt-Server
+// this will try to connect and consequently
+// throw an error on connection failure
 func NewConnection() (c *Connection, err error) {
 	jar, err := cookiejar.New(nil)
 
@@ -25,7 +26,7 @@ func NewConnection() (c *Connection, err error) {
 		},
 	}
 
-	// get reichelt SID cookie set
+	// set reichelt SID cookie
 	resp, err := c.client.Get(apiurl)
 	if err != nil {
 		return nil, err
